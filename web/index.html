@@ -494,6 +494,7 @@ button,input,textarea{font:inherit}
     activeTab: 'profile',
     user: { id: 123456, name: 'User', avatar: 'U', balance: 450, referrals: 12, subscription_expires_at: null },
     subscriptionStars: 0,
+    testMode: false,
     message: '',
     tickets: [
       {id:'TKT-001', text:'Проблема с подключением VPN', status:'answered', reply:'Проверьте настройки сети'},
@@ -576,6 +577,7 @@ button,input,textarea{font:inherit}
           <div style="font-size:28px;font-weight:700">${state.subscriptionStars > 0 ? state.subscriptionStars + ' ⭐' : 'Цена настраивается'}<span style="font-size:14px;opacity:.7">/30 дней</span></div>
         </div>
         <button class="btn btn-primary" style="margin-top:20px" data-action="renew">${state.subscriptionStars > 0 ? '⭐ Оплатить 30 дней' : 'Оплата пока не настроена'}</button>
+        ${state.testMode ? '<button class="btn btn-secondary" style="margin-top:10px" data-action="test-subscription">🧪 Тест: активировать 30 дней бесплатно</button>' : ''}
       </div>
       <div class="card"><h3>💡 Другие планы</h3><p style="font-size:13px;color:#666;margin-bottom:12px">Заинтересованы в других тарифах? Свяжитесь с поддержкой</p>
         <button class="btn btn-secondary" data-action="support">Связаться с поддержкой</button>
@@ -644,6 +646,18 @@ button,input,textarea{font:inherit}
         msg('✓ Тикет создан успешно');
       }
       if(a==='back'){state.selectedTicket=null;render();}
+      if(a==='test-subscription'){
+        try {
+          const tg = window.Telegram && window.Telegram.WebApp;
+          if(!tg || !tg.initData) return msg('Откройте LynoraVPN внутри Telegram');
+          const r = await fetch('/api/test-subscription',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({initData:tg.initData})});
+          const data = await r.json();
+          if(!r.ok) return msg(data.detail || 'Тестовая активация недоступна');
+          state.user.subscription_expires_at = data.user.subscription_expires_at;
+          msg('✓ Тестовая подписка активирована на 30 дней');
+          render();
+        } catch(e) { msg('Не удалось активировать тестовую подписку'); }
+      }
       if(a==='renew'){
         if(!state.subscriptionStars) return msg('Оплата ещё не настроена');
         try {
@@ -692,6 +706,7 @@ button,input,textarea{font:inherit}
         state.user.referrals = data.user.referrals;
         state.user.subscription_expires_at = data.user.subscription_expires_at;
         state.subscriptionStars = data.subscription_stars || 0;
+        state.testMode = !!data.test_mode;
         render();
       }
     } catch (e) {

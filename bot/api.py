@@ -2,6 +2,7 @@ import json
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from datetime import datetime, timedelta, timezone
 from aiogram import Bot
 from aiogram.types import LabeledPrice
 
@@ -45,12 +46,12 @@ async def root():
 async def auth(body: InitDataBody):
     user = auth_user(body.initData)
     row = db.get_user(user["id"])
-    return {"user": row, "subscription_stars": config.subscription_stars}
+    return {"user": row, "subscription_stars": config.subscription_stars, "test_mode": config.test_telegram_id > 0 and user["id"] == config.test_telegram_id}
 
 @app.get("/api/me")
 async def me(x_telegram_init_data: str = Header(default="")):
     user = auth_user(x_telegram_init_data)
-    return {"user": db.get_user(user["id"]), "subscription_stars": config.subscription_stars}
+    return {"user": db.get_user(user["id"]), "subscription_stars": config.subscription_stars, "test_mode": config.test_telegram_id > 0 and user["id"] == config.test_telegram_id}
 
 @app.post("/api/invoice")
 async def invoice(body: InvoiceBody):
@@ -67,6 +68,26 @@ async def invoice(body: InvoiceBody):
             prices=[LabeledPrice(label="30 дней", amount=config.subscription_stars)]
         )
     return {"ok": True, "invoice_url": link, "stars": config.subscription_stars}
+
+
+@app.post("/api/test-subscription")
+async def test_subscription(body: InitDataBody):
+    user = auth_user(body.initData)
+    if not config.test_telegram_id or user["id"] != config.test_telegram_id:
+        raise HTTPException(status_code=403, detail="Тестовый режим отключён для этого пользователя.")
+    now = datetime.now(timezone.utc)
+    current = db.get_user(user["id"]) or {}
+    old = current.get("subscription_expires_at")
+    try:
+        old_dt = datetime.fromisoformat(old) if old else None
+        if old_dt and old_dt.tzinfo is None:
+            old_dt = old_dt.replace(tzinfo=timezone.utc)
+    except ValueError:
+        old_dt = None
+    base = old_dt if old_dt and old_dt > now else now
+    expires = base + timedelta(days=30)
+    db.activate_subscription(user["id"], expires.isoformat())
+    return {"ok": True, "expires_at": expires.isoformat(), "user": db.get_user(user["id"])}
 
 @app.get("/api/tickets")
 async def tickets(x_telegram_init_data: str = Header(default="")):

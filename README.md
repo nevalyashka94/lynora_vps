@@ -87,3 +87,7 @@ A successful payment is verified by currency, amount, payload and Telegram charg
 
 ## Telegram Stars payments
 The project contains a server-side 30-day subscription payment flow using Telegram Stars (XTR). Set `SUBSCRIPTION_STARS` in Render to a positive integer to enable the Pay button. Keep it at `0` while configuring the project.
+
+
+## Безопасный тест подписки
+Для теста без списания Stars задайте в Render `TEST_TELEGRAM_ID` равным вашему Telegram ID. Тогда только этот аккаунт увидит кнопку тестовой активации на 30 дней. Перед запуском для пользователей удалите/обнулите `TEST_TELEGRAM_ID`.
