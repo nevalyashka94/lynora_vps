@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LynoraVPN - Управление подпиской</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+            background: #f8f8f8;
+            color: #1a1a1a;
+        }
+
+        .container {
+            max-width: 480px;
+            margin: 0 auto;
+            background: #ffffff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .header {
+            padding: 20px;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .header p {
+            font-size: 13px;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 20px;
+            min-height: calc(100vh - 180px);
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .tab-navigation {
+            display: flex;
+            gap: 8px;
+            padding: 12px 20px;
+            background: #f8f8f8;
+            border-bottom: 1px solid #e5e5e5;
+            overflow-x: auto;
+            scrollbar-width: none;
+            position: sticky;
+            top: 60px;
+            z-index: 9;
+        }
+
+        .tab-navigation::-webkit-scrollbar {
+            display: none;
+        }
+
+        .tab-btn {
+            padding: 8px 16px;
+            border: 1px solid #e0e0e0;
+            background: white;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+            color: #666;
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white;
+            border-color: transparent;
+        }
+
+        .tab-btn:hover:not(.active) {
+            border-color: #d0d0d0;
+            background: #fafafa;
+        }
+
+        .profile-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 36px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        .user-name {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .user-id {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: #f5f5f5;
+            border: 1px solid #e8e8e8;
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #999;
+            font-weight: 500;
+        }
+
+        .card {
+            background: white;
+            border: 1px solid #e8e8e8;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+
+        .card h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #1a1a1a;
+        }
+
+        .subscription-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .feature-list {
+            list-style: none;
+            margin: 12px 0;
+        }
+
+        .feature-list li {
+            padding: 10px 0;
+            padding-left: 24px;
+            position: relative;
+            font-size: 14px;
+            color: #555;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .feature-list li:last-child {
+            border-bottom: none;
+        }
+
+        .feature-list li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #6366f1;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .balance-display {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white;
+            padding: 24px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .balance-label {
+            font-size: 13px;
+            opacity: 0.9;
+            margin-bottom: 8px;
+        }
+
+        .balance-amount {
+            font-size: 40px;
+            font-weight: 700;
+            letter-spacing: -1px;
+        }
+
+        .balance-currency {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .input-group {
+            margin-bottom: 16px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #333;
+            border: 1px solid #e0e0e0;
+        }
+
+        .btn-secondary:hover {
+            background: #efefef;
+        }
+
+        .referral-link {
+            background: #f5f5f5;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .referral-link-text {
+            font-size: 12px;
+            color: #666;
+            word-break: break-all;
+            flex: 1;
+            font-family: monospace;
+        }
+
+        .copy-btn {
+            padding: 8px 12px;
+            background: #6366f1;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: #4f46e5;
+        }
+
+        .referral-item {
+            background: #f8f8f8;
+            border: 1px solid #e8e8e8;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .referral-item-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .referral-item-reward {
+            font-size: 13px;
+            color: #6366f1;
+            font-weight: 600;
+        }
+
+        .ticket-item {
+            background: #f8f8f8;
+            border: 1px solid #e8e8e8;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .ticket-item:hover {
+            background: #f0f0f0;
+            border-color: #d0d0d0;
+        }
+
+        .ticket-id {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 4px;
+        }
+
+        .ticket-text {
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 6px;
+        }
+
+        .ticket-status {
+            display: inline-block;
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .ticket-status.open {
+            background: #fef3c7;
+            color: #d97706;
+        }
+
+        .ticket-status.answered {
+            background: #dbeafe;
+            color: #0284c7;
+        }
+
+        .ticket-status.closed {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+
+        .textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .textarea:focus {
+            outline: none;
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .success-message {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #86efac;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 16px;
+            font-size: 13px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-state-text {
+            font-size: 14px;
+        }
+    
+button,input,textarea{font:inherit}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+
+(function () {
+  const root = document.getElementById('root');
+  const state = {
+    activeTab: 'profile',
+    user: { id: 123456, name: 'User', avatar: 'U', balance: 450, referrals: 12 },
+    message: '',
+    tickets: [
+      {id:'TKT-001', text:'Проблема с подключением VPN', status:'answered', reply:'Проверьте настройки сети'},
+      {id:'TKT-002', text:'Когда активируется подписка?', status:'open'},
+      {id:'TKT-003', text:'Спасибо за помощь!', status:'closed', reply:'Спасибо вам!'}
+    ],
+    selectedTicket: null
+  };
+
+  const referrals = [
+    ['Alex K.','35 ₽'],['Maria S.','50 ₽'],['Ivan P.','42 ₽'],['Elena T.','28 ₽'],
+    ['Dmitry L.','65 ₽'],['Anna M.','40 ₽'],['Victor N.','55 ₽'],['Olga K.','33 ₽'],
+    ['Sergey V.','47 ₽'],['Natalia G.','52 ₽'],['Pavel Z.','38 ₽'],['Irina D.','44 ₽']
+  ];
+
+  const tabs = [
+    ['profile','Профиль'],['subscription','Подписка'],['balance','Баланс'],
+    ['referrals','Рефералы'],['support','Поддержка']
+  ];
+
+  const esc = v => String(v).replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+
+  function msg(text) {
+    state.message = text;
+    render();
+    setTimeout(() => { if (state.message === text) { state.message=''; render(); } }, 3000);
+  }
+
+  function render() {
+    root.innerHTML = `
+      <div class="container">
+        <div class="header"><h1>LynoraVPN</h1><p>Премиум VPN сервис</p></div>
+        <div class="tab-navigation">
+          ${tabs.map(t => `<button class="tab-btn ${state.activeTab===t[0]?'active':''}" data-tab="${t[0]}">${t[1]}</button>`).join('')}
+        </div>
+        <div class="content">
+          ${state.message ? `<div class="success-message">${esc(state.message)}</div>` : ''}
+          ${view()}
+        </div>
+      </div>`;
+    root.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => {
+      state.activeTab=b.dataset.tab; state.selectedTicket=null; render();
+    });
+    bind();
+  }
+
+  function view() {
+    const u=state.user;
+
+    if(state.activeTab==='profile') return `
+      <div class="profile-section">
+        <div class="avatar">${esc(u.avatar)}</div><div class="user-name">${esc(u.name)}</div>
+        <div class="user-id">ID: ${esc(u.id)}</div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-value">${u.balance}</div><div class="stat-label">Баланс (₽)</div></div>
+        <div class="stat-card"><div class="stat-value">${u.referrals}</div><div class="stat-label">Рефералы</div></div>
+      </div>
+      <div class="card"><h3>Статус подписки</h3><div class="subscription-badge">Активна</div>
+        <p style="font-size:14px;color:#666;margin-top:12px">Базовый план<br>Срок действия: 30 дней</p>
+      </div>
+      <div class="card"><h3>Быстрые ссылки</h3>
+        <button class="btn btn-secondary" style="margin-bottom:8px" data-action="help">📖 Помощь</button>
+        <button class="btn btn-secondary" data-action="settings">⚙️ Настройки</button>
+      </div>`;
+
+    if(state.activeTab==='subscription') return `
+      <div class="card"><h3>📦 Базовый план</h3><div class="subscription-badge">Текущий план</div>
+        <ul class="feature-list"><li>Неограниченный трафик</li><li>Скорость до 100 Mbps</li><li>Более 50 серверов по миру</li><li>Одновременное подключение до 5 устройств</li><li>Защита DNS утечек</li><li>Поддержка 24/7</li><li>Автоматическое обновление</li></ul>
+        <div style="margin-top:20px;padding:12px;background:#f5f5f5;border-radius:8px;text-align:center"><div style="font-size:14px;color:#666;margin-bottom:4px">Стоимость</div>
+          <div style="font-size:28px;font-weight:700">299 ₽<span style="font-size:14px;opacity:.7">/мес</span></div>
+        </div>
+        <button class="btn btn-primary" style="margin-top:20px" data-action="renew">Продлить подписку</button>
+      </div>
+      <div class="card"><h3>💡 Другие планы</h3><p style="font-size:13px;color:#666;margin-bottom:12px">Заинтересованы в других тарифах? Свяжитесь с поддержкой</p>
+        <button class="btn btn-secondary" data-action="support">Связаться с поддержкой</button>
+      </div>`;
+
+    if(state.activeTab==='balance') return `
+      <div class="balance-display"><div class="balance-label">Ваш баланс</div><div><span class="balance-amount">${u.balance}</span><span class="balance-currency">₽</span></div></div>
+      <div class="card"><h3>Пополнение баланса</h3><p style="font-size:13px;color:#666;margin-bottom:16px">Воспользуйтесь промокодом для получения бонуса</p>
+        <div class="input-group"><label>Введите промокод</label><div style="display:flex;gap:8px">
+          <input id="promo" type="text" placeholder="Например: PROMO50"><button class="btn btn-primary" style="width:auto;padding:12px 16px" data-action="promo">Применить</button>
+        </div></div>
+        <p style="font-size:12px;color:#999;margin-top:12px">Доступные промокоды: PROMO50, PROMO100, VIP25, WELCOME75</p>
+      </div>
+      <div class="card"><h3>История транзакций</h3><div style="font-size:13px;color:#999;text-align:center;padding:20px 0">История пока пуста</div></div>`;
+
+    if(state.activeTab==='referrals') {
+      const total=referrals.reduce((s,r)=>s+parseInt(r[1]),0);
+      return `<div class="card"><h3>👥 Мои рефералы</h3>
+        <p style="font-size:13px;color:#666;margin-bottom:16px">Всего приглашено: <strong>${u.referrals}</strong><br>Заработок: <strong style="color:#6366f1">+${total} ₽</strong></p>
+        <div style="max-height:300px;overflow-y:auto">${referrals.map(r=>`<div class="referral-item"><div class="referral-item-name">${esc(r[0])}</div><div class="referral-item-reward">${r[1]}</div></div>`).join('')}</div>
+        <p style="font-size:12px;color:#999;margin-top:12px;font-weight:500">🎁 Комиссия: 10% с каждого пополнения вашими рефералами</p></div>
+        <div class="card"><h3>🔗 Реферальная ссылка</h3><p style="font-size:13px;color:#666;margin-bottom:12px">Поделитесь ссылкой и получайте награды</p>
+        <div class="referral-link"><div class="referral-link-text">https://t.me/LynoraVPN_bot?start=${u.id}</div><button class="copy-btn" data-action="copy">Скопировать</button></div>
+        <button class="btn btn-primary" data-action="share">Поделиться ссылкой</button></div>`;
+    }
+
+    if(state.selectedTicket) {
+      const t=state.selectedTicket;
+      return `<button class="btn btn-secondary" data-action="back" style="margin-bottom:16px">← Вернуться к списку</button>
+        <div class="card"><h3>${esc(t.id)}</h3><p style="font-size:14px;color:#333;margin-bottom:12px">${esc(t.text)}</p>
+        <span class="ticket-status ${t.status}">${t.status==='open'?'⏳ Открыт':t.status==='answered'?'✓ Ответ получен':'✓ Закрыт'}</span>
+        ${t.reply?`<div style="margin-top:16px;padding:12px;background:#f5f5f5;border-radius:8px;border-left:3px solid #6366f1"><div style="font-size:12px;color:#999;margin-bottom:6px">Ответ администратора:</div><div style="font-size:14px;color:#333">${esc(t.reply)}</div></div>`:''}
+        </div>`;
+    }
+
+    return `<div class="card"><h3>📝 Создать новый тикет</h3><div class="input-group"><label>Ваш вопрос</label>
+      <textarea id="ticket" class="textarea" placeholder="Опишите вашу проблему или вопрос..."></textarea></div>
+      <button class="btn btn-primary" data-action="ticket">Отправить тикет</button></div>
+      <div class="card"><h3>🎟️ Мои тикеты</h3>
+      ${state.tickets.map(t=>`<div class="ticket-item" data-ticket="${t.id}"><div class="ticket-id">${esc(t.id)}</div><div class="ticket-text">${esc(t.text)}</div><span class="ticket-status ${t.status}">${t.status==='open'?'⏳ Открыт':t.status==='answered'?'✓ Ответ получен':'✓ Закрыт'}</span></div>`).join('')}</div>
+      <div class="card"><h3>❓ Частые вопросы</h3><div style="font-size:13px;color:#666;line-height:1.8"><p><strong>Как активировать подписку?</strong><br>Перейдите в раздел Подписка и выберите нужный план</p><p style="margin-top:12px"><strong>Как пополнить баланс?</strong><br>Используйте промокоды в разделе Баланс</p></div></div>`;
+  }
+
+  function bind() {
+    root.querySelectorAll('[data-action]').forEach(el => el.onclick=async()=>{
+      const a=el.dataset.action;
+      if(a==='promo'){
+        const code=(root.querySelector('#promo').value||'').trim().toUpperCase();
+        const bonuses={PROMO50:50,PROMO100:100,VIP25:25,WELCOME75:75};
+        if(bonuses[code]) { state.user.balance+=bonuses[code]; msg('✓ Добавлено '+bonuses[code]+' ₽ на счет!'); }
+        else msg('✗ Промокод не найден');
+      }
+      if(a==='copy'){
+        const link=`https://t.me/LynoraVPN_bot?start=${state.user.id}`;
+        try { await navigator.clipboard.writeText(link); msg('✓ Ссылка скопирована!'); } catch(e) { msg(link); }
+      }
+      if(a==='share'){
+        const link=`https://t.me/LynoraVPN_bot?start=${state.user.id}`;
+        if(navigator.share) { try { await navigator.share({title:'LynoraVPN',text:'Присоединяйся к LynoraVPN',url:link}); } catch(e){} }
+        else msg('✓ Ссылка готова для отправки');
+      }
+      if(a==='ticket'){
+        const text=(root.querySelector('#ticket').value||'').trim();
+        if(!text) return msg('Введите вопрос');
+        state.tickets.push({id:'TKT-'+String(state.tickets.length+1).padStart(3,'0'),text,status:'open'});
+        msg('✓ Тикет создан успешно');
+      }
+      if(a==='back'){state.selectedTicket=null;render();}
+      if(a==='renew') msg('Продление подписки пока работает в демо-режиме');
+      if(a==='support'||a==='help'){state.activeTab='support';render();}
+      if(a==='settings') msg('Настройки пока доступны в демо-режиме');
+    });
+    root.querySelectorAll('[data-ticket]').forEach(el=>el.onclick=()=>{state.selectedTicket=state.tickets.find(t=>t.id===el.dataset.ticket);render();});
+  }
+
+  try {
+    const tg=window.Telegram&&window.Telegram.WebApp;
+    if(tg){tg.ready();const d=tg.initDataUnsafe&&tg.initDataUnsafe.user;
+      if(d){state.user.name=d.first_name||'User';state.user.avatar=(d.first_name||'U').charAt(0).toUpperCase();state.user.id=d.id;}
+    }
+  } catch(e){}
+  render();
+
+  // In Telegram, load the real server-side user after validating initData.
+  (async function syncWithServer() {
+    try {
+      const tg = window.Telegram && window.Telegram.WebApp;
+      if (!tg || !tg.initData) return;
+      const r = await fetch('/api/auth', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({initData: tg.initData})
+      });
+      if (!r.ok) return;
+      const data = await r.json();
+      if (data.user) {
+        state.user.id = data.user.telegram_id;
+        state.user.name = data.user.first_name || 'User';
+        state.user.avatar = state.user.name.charAt(0).toUpperCase();
+        state.user.balance = data.user.balance;
+        state.user.referrals = data.user.referrals;
+        render();
+      }
+    } catch (e) {
+      // Outside Telegram / offline: keep the local demo view.
+    }
+  })();
+})();
+
+</script>
+</body>
+</html>
