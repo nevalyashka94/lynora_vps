@@ -77,3 +77,13 @@ Mini App URL должен быть публичным HTTPS URL. В `.env` ук�
 - VPN backend / WireGuard
 - админ-панель
 - история платежей
+
+
+## Telegram Stars payments
+The project now contains a server-side 30-day subscription payment flow using Telegram Stars (XTR). Set `SUBSCRIPTION_STARS` in Render to a positive integer to enable the Pay button. Keep it at `0` while configuring the project.
+
+A successful payment is verified by currency, amount, payload and Telegram charge ID before 30 days are added to the user's subscription. Telegram requires digital goods/services in Telegram apps to use Stars.
+
+
+## Telegram Stars payments
+The project contains a server-side 30-day subscription payment flow using Telegram Stars (XTR). Set `SUBSCRIPTION_STARS` in Render to a positive integer to enable the Pay button. Keep it at `0` while configuring the project.

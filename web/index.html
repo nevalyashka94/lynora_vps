@@ -492,7 +492,8 @@ button,input,textarea{font:inherit}
   const root = document.getElementById('root');
   const state = {
     activeTab: 'profile',
-    user: { id: 123456, name: 'User', avatar: 'U', balance: 450, referrals: 12 },
+    user: { id: 123456, name: 'User', avatar: 'U', balance: 450, referrals: 12, subscription_expires_at: null },
+    subscriptionStars: 0,
     message: '',
     tickets: [
       {id:'TKT-001', text:'Проблема с подключением VPN', status:'answered', reply:'Проверьте настройки сети'},
@@ -541,6 +542,14 @@ button,input,textarea{font:inherit}
     bind();
   }
 
+
+  function subscriptionHtml() {
+    const exp = state.user.subscription_expires_at;
+    if (!exp) return '<div class="subscription-badge" style="background:#ef4444">Не активна</div><p style="font-size:14px;color:#666;margin-top:12px">Подписка ещё не оформлена.</p>';
+    const d = new Date(exp);
+    return '<div class="subscription-badge">Активна</div><p style="font-size:14px;color:#666;margin-top:12px">Базовый план<br>Действует до: ' + esc(d.toLocaleString('ru-RU')) + '</p>';
+  }
+
   function view() {
     const u=state.user;
 
@@ -553,8 +562,7 @@ button,input,textarea{font:inherit}
         <div class="stat-card"><div class="stat-value">${u.balance}</div><div class="stat-label">Баланс (₽)</div></div>
         <div class="stat-card"><div class="stat-value">${u.referrals}</div><div class="stat-label">Рефералы</div></div>
       </div>
-      <div class="card"><h3>Статус подписки</h3><div class="subscription-badge">Активна</div>
-        <p style="font-size:14px;color:#666;margin-top:12px">Базовый план<br>Срок действия: 30 дней</p>
+      <div class="card"><h3>Статус подписки</h3>${subscriptionHtml()}
       </div>
       <div class="card"><h3>Быстрые ссылки</h3>
         <button class="btn btn-secondary" style="margin-bottom:8px" data-action="help">📖 Помощь</button>
@@ -565,9 +573,9 @@ button,input,textarea{font:inherit}
       <div class="card"><h3>📦 Базовый план</h3><div class="subscription-badge">Текущий план</div>
         <ul class="feature-list"><li>Неограниченный трафик</li><li>Скорость до 100 Mbps</li><li>Более 50 серверов по миру</li><li>Одновременное подключение до 5 устройств</li><li>Защита DNS утечек</li><li>Поддержка 24/7</li><li>Автоматическое обновление</li></ul>
         <div style="margin-top:20px;padding:12px;background:#f5f5f5;border-radius:8px;text-align:center"><div style="font-size:14px;color:#666;margin-bottom:4px">Стоимость</div>
-          <div style="font-size:28px;font-weight:700">299 ₽<span style="font-size:14px;opacity:.7">/мес</span></div>
+          <div style="font-size:28px;font-weight:700">${state.subscriptionStars > 0 ? state.subscriptionStars + ' ⭐' : 'Цена настраивается'}<span style="font-size:14px;opacity:.7">/30 дней</span></div>
         </div>
-        <button class="btn btn-primary" style="margin-top:20px" data-action="renew">Продлить подписку</button>
+        <button class="btn btn-primary" style="margin-top:20px" data-action="renew">${state.subscriptionStars > 0 ? '⭐ Оплатить 30 дней' : 'Оплата пока не настроена'}</button>
       </div>
       <div class="card"><h3>💡 Другие планы</h3><p style="font-size:13px;color:#666;margin-bottom:12px">Заинтересованы в других тарифах? Свяжитесь с поддержкой</p>
         <button class="btn btn-secondary" data-action="support">Связаться с поддержкой</button>
@@ -636,7 +644,20 @@ button,input,textarea{font:inherit}
         msg('✓ Тикет создан успешно');
       }
       if(a==='back'){state.selectedTicket=null;render();}
-      if(a==='renew') msg('Продление подписки пока работает в демо-режиме');
+      if(a==='renew'){
+        if(!state.subscriptionStars) return msg('Оплата ещё не настроена');
+        try {
+          const tg = window.Telegram && window.Telegram.WebApp;
+          if(!tg || !tg.initData) return msg('Откройте LynoraVPN внутри Telegram');
+          const r = await fetch('/api/invoice',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({initData:tg.initData})});
+          const data = await r.json();
+          if(!r.ok) return msg(data.detail || 'Не удалось создать счёт');
+          tg.openInvoice(data.invoice_url, function(status){
+            if(status === 'paid') { msg('✓ Оплата прошла. Обновляем подписку…'); setTimeout(syncWithServer, 1200); }
+            else if(status === 'failed') msg('✗ Платёж не прошёл');
+          });
+        } catch(e) { msg('Не удалось открыть оплату'); }
+      }
       if(a==='support'||a==='help'){state.activeTab='support';render();}
       if(a==='settings') msg('Настройки пока доступны в демо-режиме');
     });
@@ -652,7 +673,7 @@ button,input,textarea{font:inherit}
   render();
 
   // In Telegram, load the real server-side user after validating initData.
-  (async function syncWithServer() {
+  async function syncWithServer() {
     try {
       const tg = window.Telegram && window.Telegram.WebApp;
       if (!tg || !tg.initData) return;
@@ -669,12 +690,15 @@ button,input,textarea{font:inherit}
         state.user.avatar = state.user.name.charAt(0).toUpperCase();
         state.user.balance = data.user.balance;
         state.user.referrals = data.user.referrals;
+        state.user.subscription_expires_at = data.user.subscription_expires_at;
+        state.subscriptionStars = data.subscription_stars || 0;
         render();
       }
     } catch (e) {
       // Outside Telegram / offline: keep the local demo view.
     }
-  })();
+  }
+  syncWithServer();
 })();
 
 </script>

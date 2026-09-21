@@ -1,8 +1,9 @@
 import json
 from fastapi import FastAPI, Header, HTTPException
-from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from aiogram import Bot
+from aiogram.types import LabeledPrice
 
 from .config import get_config
 from .db import Database
@@ -23,6 +24,10 @@ class TicketBody(BaseModel):
 class PromoBody(BaseModel):
     code: str
 
+class InvoiceBody(BaseModel):
+    initData: str
+
+
 def auth_user(init_data: str):
     try:
         data = validate_init_data(init_data, config.bot_token)
@@ -40,12 +45,28 @@ async def root():
 async def auth(body: InitDataBody):
     user = auth_user(body.initData)
     row = db.get_user(user["id"])
-    return {"user": row}
+    return {"user": row, "subscription_stars": config.subscription_stars}
 
 @app.get("/api/me")
 async def me(x_telegram_init_data: str = Header(default="")):
     user = auth_user(x_telegram_init_data)
-    return {"user": db.get_user(user["id"])}
+    return {"user": db.get_user(user["id"]), "subscription_stars": config.subscription_stars}
+
+@app.post("/api/invoice")
+async def invoice(body: InvoiceBody):
+    user = auth_user(body.initData)
+    if config.subscription_stars <= 0:
+        raise HTTPException(status_code=503, detail="Оплата пока не настроена: укажите SUBSCRIPTION_STARS в Render.")
+    payload = f"vpn30:{user['id']}"
+    async with Bot(config.bot_token) as bot:
+        link = await bot.create_invoice_link(
+            title="LynoraVPN — 30 дней",
+            description="Доступ к VPN на 30 дней.",
+            payload=payload,
+            currency="XTR",
+            prices=[LabeledPrice(label="30 дней", amount=config.subscription_stars)]
+        )
+    return {"ok": True, "invoice_url": link, "stars": config.subscription_stars}
 
 @app.get("/api/tickets")
 async def tickets(x_telegram_init_data: str = Header(default="")):
